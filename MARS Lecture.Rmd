@@ -192,18 +192,23 @@ Where:
 
 ## Visualizing Hinge Functions
 
-```{r, hinge, echo=FALSE, out.width = "75%", fig.align="center"}
+```{r, hinge, echo=FALSE, fig.width = 9, fig.height=4, fig.show='hold', out.width = "90%", fig.align="center"}
 
 knot <- 31
 h1 <- pmax(0, knot - x)
 h2 <- pmax(0, x - knot)
 
+
+#Helps place side by side
+par(mfrow = c(1, 2))
+
+
 #Left hinge
 plot(x, h1, type = "b", col = "blue", xlab = "X", ylab = "Hinge Value", main = "Left Hinge")
-
+abline(v = knot, col = "red")
 
 #Right hinge
-plot(x, h2, type = "b", col = "green", xlab = "X", ylab = "Hinge Value", main = "Left Hinge")
+plot(x, h2, type = "b", col = "blue", xlab = "X", ylab = "Hinge Value", main = "Right Hinge")
 
 abline(v = knot, col = "red")
 ```
@@ -211,15 +216,52 @@ abline(v = knot, col = "red")
 
 ## Combining Hinge Functions
 
-Show hinge functions in 1 equation
+MARS combines multiple hinge functions into one to model the relationship between X and Y
+
+
+$$
+\hat{y} = \beta_0 + \beta_1\max(0,t-x) + \beta_2\max(0,x-t)
+$$
+
+
+By combining these functions, we can model the separate slopes on each side of every knot while keeping the prediction line continuous
+
 
 ## Piecewise Regression
 
-Show in piecewise equation and show it visually
+We can break up the MARS function into 2 separate piecewise linear models too.
+
+$$ 
+   \hat{y} =
+   \begin{cases}
+   \beta_0 + \beta_1(t-x), & x < t \\[5pt]
+   \beta_0 + \beta_2(x-t), & x
+   \end{cases}
+$$
+
+- **Left of the knot:** The model has a single linear relationship
+
+- **Right of the knot:** The model has another single linear relationship
+
+- **At the knot:** We can see where the 2 pieces combine to maintain continuity
+
 
 ## Polynomial Regression
 
-Introduce polynomial equation
+Polynomial regression allows to model more complex models past simple linearity.
+
+Quadratic Model Formula:
+
+$$
+\hat{y} = \beta_0 + \beta_1x + \beta_2x^2
+$$
+- **Linear Regression:** Fits a single line through the data
+
+- **Polynomial Regression:** Fits a curve using higher degree terms
+
+- **Comparison:** We will be comparing to see how polynomial regression, which uses a single curve, compares to MARS, which uses hinge functions to model different regions of the data. 
+
+
 
 ## Introducing the Dataset
 
@@ -227,7 +269,7 @@ We will use the airquality dataset which has daily weather observations from New
 
 **Variables:**
 
-- **X (Predictor):** Day of observation (1-153)
+- **X (Predictor):** Day of observation (1 - 153)
 - **Y (Response):** Daily maximum temperature (°F)
 
 **Goal:** Model how temperature changes over time and compare polynomial regression vs MARS.
@@ -241,13 +283,62 @@ weather$DayIndex <- 1:nrow(weather)
 
 ## Polynomial Regression vs MARS
 
-```{r, j, echo=FALSE, out.width = "75%", fig.align="center"}
+```{r, polynomial_mars, echo=FALSE, out.width = "60%", fig.align="center", warning=FALSE, message=FALSE, error=FALSE}
+library(earth)
+#Split data
+set.seed(1)
+training_idx <- sort(sample(1:nrow(weather), 0.7 * nrow(weather)))
+
+train <- weather[training_idx, ]
+test <- weather[-training_idx, ]
+
+#Fit both models
+poly_model <- lm(Temp ~ DayIndex + I(DayIndex^2), data = train)
+mars_model <- earth(Temp ~ DayIndex, data = train)
+
+plot(weather$DayIndex, weather$Temp, pch = 19, xlab = "Day", ylab = "Temperature (°F)", main = "Polynomial Regression vs MARS")
+
+lines(train$DayIndex, fitted(poly_model), col = "blue", lwd = 3)
+lines(train$DayIndex, fitted(mars_model), col = "red", lwd = 3)
+
+legend("topright", legend = c("Polynomial Model", "MARS Model"), col = c("blue", "red"))
+```
+
+## Polynomial Regression vs MARS Results
+
+We now evaluate the models using our test data
+
+- **RMSE:** Lower is better.
+- **R-squared** Higher is better.
+
+```{r, model_results, echo=FALSE, warning=FALSE, message=FALSE, error=FALSE}
+poly_predict <- predict(poly_model, test)
+mars_predict <- predict(mars_model, test)
+
+#Evaluate metrics
+poly_rmse <- sqrt(mean((test$Temp - poly_predict)^2))
+mars_rmse <- sqrt(mean((test$Temp - mars_predict)^2))
+
+poly_r2 <- 1 - sum((test$Temp - poly_predict)^2) / sum((test$Temp - mean(test$Temp))^2)
+mars_r2 <- 1 - sum((test$Temp - mars_predict)^2) / sum((test$Temp - mean(test$Temp))^2)
+
+results <- data.frame(Model = c("Polynomial", "MARS"), RMSE = c(poly_rmse, mars_rmse), R_Squared = c(poly_r2, mars_r2))
+
+knitr::kable(results, format = "latex")
 
 ```
 
+
 ## Why Use MARS?
 
-Explain how polynomial curviture is not as much control as splittingn the data
+- **Capture Nonlinear relationships:** We are able to model patterns that simple linear regression can miss
+
+- **Automatic Knot Selection:** MARS automatically identifies the point where relationships change 
+
+- **Flexible Modeling:** MARS can capture different slopes and incorporate interactions between predictors
+
+- **Controls overfitting:** Because we use backwards pruning and Generalized Cross Validation (GCV), we can cut back on overly complex models
+
 
 ## Forward Selection
 
