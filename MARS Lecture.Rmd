@@ -71,33 +71,142 @@ knitr::kable(df, col.names = c("X", "Y", "X", "Y"), format = "latex")
 
 ## The Problem with Linear Regression
 
-show linear reg equation and show single slope
+Linear regression models the relationship between a predictor and a response using a straight line.
+
+$$
+\hat{Y} = \beta_0 + \beta_1 x
+$$
+
+Where:
+
+- $\hat{y}$ = Predicted response (elevation)
+- $\beta_0$ = Intercept
+- $\beta_1$ = Slope
+- $x$ = Predictor (grid position)
+
+**Limitation** Linear regression assumes a constant slope across all the data
+
+
 
 ## When Data Isn't Linear
 
-show the model
+Let's visualize our volcano elevation data.
+
+```{r, echo=FALSE, out.width = "50%", fig.align="center"}
+plot(x, y, pch = 19, type = "b", xlab = "Grid Position", ylab = "Elevation (meters)", main = "Volcano Elevation")
+```
+
+**Observation:** Elevation first increases, peaks, and then decreases
+
+A straight line does not accurately capture this
 
 ## Fitting a Linear Regression
 
-Fih linear regression model
+```{r, echo=FALSE, out.width = "50%", fig.align="center"}
+model <- lm(y ~ x)
 
+plot(x, y, pch = 19, type = "b", xlab = "Grid Position", ylab = "Elevation (meters)", main = "Volcano Elevation")
+
+abline(model, col = "red", lwd = 2)
+```
+
+**Observe:** The fitted regression line is nearly horizontal even though our data clearly increases and then decreases.
 
 ## Why Does Linear Regression Fail?
 
-Explain what happened
+Linear Regression assumes a constant slope across all values of X.
+
+$$
+\hat{Y} = \beta_0 + \beta_1 x
+$$
+
+**In our volcano dataset:**
+
+- Elevation initially increases
+- It reaches a peak
+- It decreases
+- Linear regression only estimates one slope for the whole dataset
+- Both trends just get cancelled out, and leave us with a single horizontal line
+
+**Conclusion** A single line cannot capture a relationship that changes direction.
+
 
 
 ## Introducing MARS 
 
-Define it and explain what its used for
+**Multivariate Adaptive Regression Splines (MARS) ** is a regression model that can account for nonlinear relationships.
+
+Unlike ordinary linear regression, MARS:
+
+- Sections off regions using **knots**
+- Fits separate slopes into every region
+- Can automatically determine the points that divide each region
+- Combines each region into a single function
+
+**Key idea:** MARS allows us to fit multiple slopes into one, and allows it to change where needed.
+
 
 ## What is a Knot?
 
-Show how the arbitrary point on the data where relationship changes
+A **knot** is a point where the relationship between X and Y changes the slope.
+
+- Knots are the point that divide our regions
+- Each region has a unique slope
+- MARS automatically determines where these knots are placed
+
+In our dataset:
+
+Elevation initially increased until it peaked, and then decreased.
+
+So a knot at the peak would allow us to have 2 separate regions with 2 different slopes.
+
+## Visualizing the Knot
+```{r, echo=FALSE, out.width = "75%", fig.align="center"}
+
+plot(x, y, pch = 19, type = "b", xlab = "Grid Position", ylab = "Elevation (meters)", main = "Visual of the Knot")
+
+abline(v = 31, col = "red", lty = 2, lwd = 2)
+```
 
 ## Hinge Functions
 
-Show max(0, x - t) and max(0, t - x) with graphs
+MARS uses **hinge functions** to model the slopes within each section divided by a knot.
+
+Two hinge functions are created around a knot $t$:
+
+$$
+h_1(x) = \max(0, t-x)
+$$
+
+$$
+h_2(x) = \max(0, x-t)
+$$
+Where:
+
+- $x$ = Predictor Value
+- $t$ = Knot location
+- $\max()$ = Returns the larger of the two values
+
+**Key Idea:** Each hinge function is 0 on one side of the knot and increases/decreases on the other
+
+
+## Visualizing Hinge Functions
+
+```{r, hinge_plot, echo=FALSE, out.width = "75%", fig.align="center"}
+
+knot <- 31
+h1 <- pmax(0, knot - x)
+h2 <- pmax(0, x - knot)
+
+#Left hinge
+plot(x, h1, type = "b", col = "blue", xlab = "X", ylab = "Hinge Value", main = "Left Hinge")
+
+
+#Right hinge
+plot(x, h2, type = "b", col = "green", xlab = "X", ylab = "Hinge Value", main = "Left Hinge")
+
+abline(v = knot, col = "red")
+```
 
 
 ## Combining Hinge Functions
