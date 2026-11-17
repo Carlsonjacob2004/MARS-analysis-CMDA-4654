@@ -192,7 +192,7 @@ Where:
 
 ## Visualizing Hinge Functions
 
-```{r, hinge_plot, echo=FALSE, out.width = "75%", fig.align="center"}
+```{r, hinge, echo=FALSE, out.width = "75%", fig.align="center"}
 
 knot <- 31
 h1 <- pmax(0, knot - x)
@@ -223,11 +223,27 @@ Introduce polynomial equation
 
 ## Introducing the Dataset
 
-intnro dataset
+We will use the airquality dataset which has daily weather observations from New York City between May and September 1973.
+
+**Variables:**
+
+- **X (Predictor):** Day of observation (1-153)
+- **Y (Response):** Daily maximum temperature (°F)
+
+**Goal:** Model how temperature changes over time and compare polynomial regression vs MARS.
+
+```{r weather, echo=FALSE}
+data(airquality)
+
+weather <- airquality
+weather$DayIndex <- 1:nrow(weather)
+```
 
 ## Polynomial Regression vs MARS
 
-Show quadratic curve with our MARS curve
+```{r, j, echo=FALSE, out.width = "75%", fig.align="center"}
+
+```
 
 ## Why Use MARS?
 
