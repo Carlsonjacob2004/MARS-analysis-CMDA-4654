@@ -28,6 +28,47 @@ knitr::knit_hooks$set(chunk = function(x, options) {
 
 ```
 
+## Simple Dataset
+
+\begin{columns}[T]
+
+\begin{column}{0.5\textwidth}
+
+We have a simple "volcano" dataset that has 20 elevation measurements that we got from R. 
+
+**Variables:**
+
+- **X (Predictor):** Grid position along mountain
+- **Y (Response):** Elevation in meters
+
+We are trying to predict elevation using the position
+
+\end{column}
+
+
+
+
+\begin{column}{0.50\textwidth}
+```{r plots, echo = FALSE, results='asis'}
+data(volcano)
+
+#Select the x's and y's
+
+x <- seq(1, 58, by = 3)
+y <- volcano[20, x]
+
+df <- data.frame(x, y)
+
+#SPlit in half to fit on slide
+df <- data.frame(x1 = x[1:10], y1 = y[1:10], x2 = x[11:20], y2 = y[11:20])
+
+knitr::kable(df, col.names = c("X", "Y", "X", "Y"), format = "latex")
+```
+
+\end{column}
+
+\end{columns}
+
 ## The Problem with Linear Regression
 
 show linear reg equation and show single slope
