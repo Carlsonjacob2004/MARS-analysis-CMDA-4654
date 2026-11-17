@@ -12,7 +12,7 @@ test  <- fia[-idx, ]
 
 # --- 4. Fit MARS ---
 mars_gcv <- earth(
-  HT ~ .,
+  tree_height ~ .,
   data    = train,
   degree  = 2,          # allow 2-way interactions
   pmethod = "backward", # prune by GCV (default)
