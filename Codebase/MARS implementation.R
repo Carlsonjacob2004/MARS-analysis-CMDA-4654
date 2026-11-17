@@ -1,10 +1,10 @@
 library(earth)
 library(dplyr)
 
-fia <- read.csv("fia_trees_model.csv")
+fia <- read.csv("fia_model.csv")
 
 
-
+seed(4654)
 idx   <- sample(nrow(fia), 0.8 * nrow(fia))
 train <- fia[idx, ]
 test  <- fia[-idx, ]
