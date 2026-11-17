@@ -1,0 +1,165 @@
+---
+title: "Multivariate Adaptive Regression Splines Lecture"
+author: "Artem Belikin, Gabe Haley, Liam Murphy, Jacob Carlson"
+date: "2026-11-17"
+fontsize: 9pt
+classoption: "aspectratio=169"
+output: 
+  beamer_presentation: 
+    fonttheme: professionalfonts
+    highlight: kate
+    theme: Rochester
+    self_contained: true
+header-includes:
+- \definecolor{VTmaroon}{HTML}{861F41}
+- \usecolortheme[named=VTmaroon]{structure}
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+knitr::opts_chunk$set(echo = FALSE)
+
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  paste0("\n \\", "footnotesize","\n\n", x, "\n\n \\normalsize")
+})
+
+
+```
+
+## The Problem with Linear Regression
+
+show linear reg equation and show single slope
+
+## When Data Isn't Linear
+
+show the model
+
+## Fitting a Linear Regression
+
+Fih linear regression model
+
+
+## Why Does Linear Regression Fail?
+
+Explain what happened
+
+
+## Introducing MARS 
+
+Define it and explain what its used for
+
+## What is a Knot?
+
+Show how the arbitrary point on the data where relationship changes
+
+## Hinge Functions
+
+Show max(0, x - t) and max(0, t - x) with graphs
+
+
+## Combining Hinge Functions
+
+Show hinge functions in 1 equation
+
+## Piecewise Regression
+
+Show in piecewise equation and show it visually
+
+## Polynomial Regression
+
+Introduce polynomial equation
+
+## Introducing the Dataset
+
+intnro dataset
+
+## Polynomial Regression vs MARS
+
+Show quadratic curve with our MARS curve
+
+## Why Use MARS?
+
+Explain how polynomial curviture is not as much control as splittingn the data
+
+## Forward Selection
+
+Explain how MARS begins with an intercept and adds hinge functions
+
+## Finding the Best Knot 
+
+Show multiple candidate knot locations and compare the RSS values, and show how we choose the best one.
+
+## Building a Complex Model
+
+Show how additioonal hinge funcntioons make a better fit
+
+## The Problem of Overfittingn
+
+Compare a well fitted model with onen that is very complicated and mention the noise annd unncessary funcntions
+
+## Backwards Pruning
+
+Explain how MARS removes unncessary basic functions
+
+## Generalized Cross-Validation (GCV)
+
+Introduce the equation and show how complexity is penalized, show equation
+
+## GCV versus K-Fold Cross-Validation
+
+Explain how they differ and why MARS defaults to GCV
+
+## MARS with Multiple Predictors
+
+Introduce MARS equation with basic functions
+
+## Modeling Interactions
+
+Show how 2 hinge functions can multiply together and allow for model interaction
+
+
+## Our Real World Dataset
+
+introduce dataset source, etc 
+
+## Research Question 
+
+Research question
+
+## Data Preparation
+
+Response, predictors, clean
+
+## Exploratory Data Analysis
+
+EDA visuals
+
+## Train/Test Strategy
+
+show splits and strategy
+
+## MARS Implementation
+
+Show implementation with code
+
+## MARS Results
+
+Show the selected knots, important variables, fitted relationships, and domain specific interpretation
+
+## MARS vs. Baseline Regression
+Compare the performance
+
+## Limitations of MARS
+
+Overfitting, noisy data, computational complexity extrapolations, and situations where a simple model is better. 
+
+## Key Takeaways
+
+Show the conclusion
+
+## References
+
+
+
