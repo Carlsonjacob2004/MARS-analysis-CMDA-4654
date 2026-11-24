@@ -17,6 +17,7 @@ header-includes:
 
 ```{r setup, include=FALSE}
 library(knitr)
+library(earth)
 knitr::opts_chunk$set(echo = FALSE)
 
 def.chunk.hook  <- knitr::knit_hooks$get("chunk")
@@ -52,14 +53,19 @@ We are trying to predict elevation using the position
 ```{r plots, echo = FALSE, results='asis'}
 data(volcano)
 
+peak_row <- which(volcano == max(volcano), arr.ind = TRUE)[1, "row"]
 #Select the x's and y's
+volc <- data.frame(x = 1:ncol(volcano),
+                   y = volcano[peak_row, ])
 
 x <- seq(1, 58, by = 3)
 y <- volcano[20, x]
 
+
+
 df <- data.frame(x, y)
 
-#SPlit in half to fit on slide
+#Split in half to fit on slide
 df <- data.frame(x1 = x[1:10], y1 = y[1:10], x2 = x[11:20], y2 = y[11:20])
 
 knitr::kable(df, col.names = c("X", "Y", "X", "Y"), format = "latex")
@@ -235,7 +241,7 @@ $$
    \hat{y} =
    \begin{cases}
    \beta_0 + \beta_1(t-x), & x < t \\[5pt]
-   \beta_0 + \beta_2(x-t), & x
+   \beta_0 + \beta_2(x-t), & x \ge t
    \end{cases}
 $$
 
@@ -342,27 +348,161 @@ knitr::kable(results, format = "latex")
 
 ## Forward Selection
 
-Explain how MARS begins with an intercept and adds hinge functions
+- **RSS for hinge pairs:** Starting from an intercept-only model, MARS fits a model with each candidate hinge pair (every predictor × every candidate knot) and stores its RSS
+
+- **Minimize RSS:** MARS compares these models and keeps the hinge pair with the lowest RSS
+
+- **Repeat:** Using the new model as the base, MARS searches all candidates again and adds the hinge pair that lowers RSS the most
+
+- **Build overfitted model:** This continues until a maximum number of terms is reached or RSS stops improving, deliberately overfitting so the backward pass can prune
+
 
 ## Finding the Best Knot 
+x and t are the observed values of the data
 
-Show multiple candidate knot locations and compare the RSS values, and show how we choose the best one.
+$$
+x = \{x_1, x_2, x_3\}, \qquad t \in \{x_1, x_2, x_3\}
+$$
+
+Build the pairs:
+
+$$
+h_1(x) = \max(0,\, t - x), \qquad h_2(x) = \max(0,\, x - t)
+$$
+
+$$
+\begin{array}{|c|c|c|}
+\hline
+t & \hat{y} = \beta_0 + \beta_1 h_1(x) + \beta_2 h_2(x) & \text{RSS} = \sum_{i=1}^{n}(y_i - \hat{y}_i)^2 \\
+\hline
+x_1 & \beta_0 + \beta_1(x_1 - x)_+ + \beta_2(x - x_1)_+ & \text{RSS}_1 \\
+x_2 & \beta_0 + \beta_1(x_2 - x)_+ + \beta_2(x - x_2)_+ & \text{RSS}_2 \\
+x_3 & \beta_0 + \beta_1(x_3 - x)_+ + \beta_2(x - x_3)_+ & \text{RSS}_3 \\
+\hline
+\end{array}
+$$
+
+
+MARS selects the knot with the smallest RSS, $t^* = \arg\min_k \text{RSS}_k$, and adds that hinge pair to the model.
+
 
 ## Building a Complex Model
+```{r more-hinges, echo = TRUE, eval = FALSE}
+sizes  <- c(3, 5, 7, 21)   # max terms = intercept + 1, 2, 3, 10 pairs
+labels <- c("1 pair max", "2 pairs max", "3 pairs max", "10 pairs max")
+yl     <- range(volc$y) + c(-10, 10)
 
-Show how additioonal hinge funcntioons make a better fit
+par(mfrow = c(1, 4), mar = c(4, 4, 3, 1))
+for (k in seq_along(sizes)) {
+  # forward pass only: no pruning, keep adding until nk terms
+  fit   <- earth(y ~ x, data = volc, nk = sizes[k], thresh = 0, pmethod = "none")
+  knots <- fit$cuts[fit$selected.terms[-1], "x"]
+  
+  plot(volc$x, volc$y, pch = 16, cex = 0.6, col = "gray60",
+       xlab = "Column", ylab = "Height", ylim = yl,
+       main = paste0(labels[k], "\nRSS = ", round(fit$rss, 1)))
+  abline(v = unique(knots), col = "red", lty = 2)
+  lines(volc$x, predict(fit), col = "blue", lwd = 3)
+}
+```
 
-## The Problem of Overfittingn
+\normalsize
 
-Compare a well fitted model with onen that is very complicated and mention the noise annd unncessary funcntions
+## Building a Complex Model: Output
+
+```{r more-hinges-plot, ref.label="more-hinges", echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=3.2, out.width="100%"}
+```
+
+- Each new hinge pair adds a knot (red) where the slope can change
+- RSS decreases with every pair added
+
+## The Problem of Overfitting
+
+\scriptsize
+```{r overfit, echo =TRUE, eval=FALSE}
+set.seed(4654)
+noisy   <- volc
+noisy$y <- volc$y + rnorm(nrow(volc), 0, 5)   # add noise
+
+good <- earth(y ~ x, data = noisy, nk = 41, thresh = 0,
+              minspan = 1, endspan = 1)                     # pruned
+over <- earth(y ~ x, data = noisy, nk = 41, thresh = 0,
+              minspan = 1, endspan = 1, pmethod = "none")   # no pruning
+
+show_fit <- function(f, name, col) {
+  mse <- mean((predict(f, volc) - volc$y)^2)              # vs. true heights
+  plot(noisy$x, noisy$y, pch = 16, cex = 0.6, col = "gray60",
+       xlab = "Column", ylab = "Height",
+       main = sprintf("%s: %d hinges\nRSS = %.0f, True MSE = %.1f",
+                      name, length(f$selected.terms) - 1, f$rss, mse))
+  lines(volc$x, predict(f), col = col, lwd = 3)
+}
+
+par(mfrow = c(1, 2))
+show_fit(good, "Pruned",  "blue")
+show_fit(over, "Overfit", "red")
+```
+\normalsize
+
+## The Problem of Overfitting: Output
+
+```{r overfit-plot, ref.label="overfit", echo=FALSE, message=FALSE, warning=FALSE, fig.width=9, fig.height=3.6, out.width="100%"}
+```
+
+- **Overfit model:** many extra hinges bend to follow random noise, not the volcano's shape
+- **Lower training RSS, but higher error against the true heights** 
+- **Pruned model:** fewer hinges capture the real shape and ignore the noise
 
 ## Backwards Pruning
 
-Explain how MARS removes unncessary basic functions
+- **Remove each term:** Starting from the overfit forward model, MARS builds a set of new models, each with one term removed (the intercept is never removed)
+
+- **Compare RSS:** It keeps the model whose removed term causes the smallest increase in RSS
+
+- **Save and repeat:** The chosen model is saved, and the process repeats from it, removing one term at a time until only the intercept remains
+
+- **Pruned model:** MARS computes the GCV of the saved model at each size and selects the one with the lowest GCV
+
+
+## Backwards Pruning Cont.
+
+$$
+\begin{array}{|c|c|c|c|}
+\hline
+\text{Size} & \text{Candidate model} & \Delta\text{RSS} & \text{GCV (winner)} \\
+\hline
+M & \beta_0 + \beta_1(t_1-x)_+ + \beta_2(x-t_1)_+ + \beta_3(t_2-x)_+ & 0 & \text{GCV}_M \\
+\hline
+    & \mathbf{\beta_0 + \beta_1(t_1-x)_+ + \beta_2(x-t_1)_+} & \mathbf{\Delta_1} & \\
+M-1 & \beta_0 + \beta_1(t_1-x)_+ + \beta_3(t_2-x)_+ & \Delta_2 & \text{GCV}_{M-1} \\
+    & \beta_0 + \beta_2(x-t_1)_+ + \beta_3(t_2-x)_+ & \Delta_3 & \\
+\hline
+M-2 & \mathbf{\beta_0 + \beta_1(t_1-x)_+} & \mathbf{\Delta_4} & \text{GCV}_{M-2} \\
+    & \beta_0 + \beta_2(x-t_1)_+ & \Delta_5 & \\
+\hline
+M-3 & \beta_0 \ \text{(intercept only)} & \Delta_6 & \text{GCV}_{M-3} \\
+\hline
+\end{array}
+$$
+
 
 ## Generalized Cross-Validation (GCV)
 
-Introduce the equation and show how complexity is penalized, show equation
+$$
+\mathrm{GCV}(M) = \frac{\mathrm{RSS}(M)}{n\left(1 - \frac{C(M)}{n}\right)^2},
+\qquad
+C(M) = M + d\,K
+$$
+\noindent where
+\begin{itemize}
+  \item $n$ is the number of observations,
+  \item $M$ is the number of terms (coefficients) in the model, including the intercept,
+  \item $K$ is the number of distinct knots in the model,
+  \item $d$ is the penalty per knot, typically $d = 2$ for additive models and $d = 3$ when interactions are allowed,
+  \item $\mathrm{RSS}(M) = \sum_{i=1}^{n}\left(y_i - \hat{f}_M(x_i)\right)^2$ is the residual sum of squares,
+  \item $\hat{f}_M(x) = \beta_0 + \sum_{m=1}^{M-1} \beta_m B_m(x)$ is the fitted MARS model, where each basis function $B_m(x)$ is a hinge function or a product of hinge functions,
+  \item $C(M) = M + dK$ is the effective number of parameters.
+\end{itemize}
 
 ## GCV versus K-Fold Cross-Validation
 
